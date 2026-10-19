@@ -2,6 +2,7 @@ import type {ComponentType} from 'react'
 import {ActionIcon, Stack, Text, Tooltip, type MantineColor} from '@mantine/core'
 import {
   IconCamera
+  , IconHome
   , IconPlayerPlay
   , IconPlayerSkipBack
   , IconPlayerSkipForward
@@ -15,6 +16,7 @@ import {
   , IconVolume2
   , IconVolume3
 } from '@tabler/icons-react'
+import {isIosDevice} from '@/core/devices/platform'
 import {gettext, useTranslation} from '@/core/i18n'
 import {WidgetCard} from '@/ui/WidgetCard'
 import type {PaneProps} from '../../types'
@@ -58,12 +60,26 @@ const keyGroups: Array<{title: string, keys: SpecialKey[]}> = [
   }
 ]
 
-export function AdvancedInputCard({control}: Pick<PaneProps, 'control'>) {
+const iosKeyGroups: Array<{title: string, keys: SpecialKey[]}> = [
+  {
+    title: gettext('Special Keys')
+    , keys: [{key: 'home', label: gettext('Home'), icon: IconHome}]
+  }
+  , {
+    title: gettext('Volume')
+    , keys: [
+      {key: 'volume_down', label: gettext('Volume Down'), icon: IconVolume2}
+      , {key: 'volume_up', label: gettext('Volume Up'), icon: IconVolume}
+    ]
+  }
+]
+
+export function AdvancedInputCard({device, control}: Pick<PaneProps, 'device' | 'control'>) {
   const {t} = useTranslation()
   return (
     <WidgetCard title={t('Advanced Input')} icon={IconSettings} color='pink' className='stf-advanced-input'>
       <Stack gap='md'>
-        {keyGroups.map((group) => (
+        {(isIosDevice(device) ? iosKeyGroups : keyGroups).map((group) => (
           <div key={group.title}>
             <Text size='xs' fw={600} c='dimmed' tt='uppercase' mb={6}>{t(group.title)}</Text>
             <ActionIcon.Group>

@@ -284,11 +284,26 @@ function rebootUserDeviceBySerial(req: ApiRequest, res: Response) {
   })
 }
 
+// iOS devices have no ADB, so remote connect/disconnect can never succeed. Answer at once
+// instead of letting the request sit until the 504 timer fires.
+function rejectIosRemoteAdb(res: Response, device: DeviceDocument, action: string) {
+  if (device.platform !== 'iOS') {
+    return false
+  }
+
+  apiutil.respond(res, 400, 'Remote ADB ' + action + ' is not supported for iOS devices')
+  return true
+}
+
 function remoteConnectUserDeviceBySerial(req: ApiRequest, res: Response) {
   var serial = req.swagger.params.serial.value
 
   withOwnedDevice(req, res, serial, 'Device is not owned by you or is not available'
   , function(device) {
+    if (rejectIosRemoteAdb(res, device, 'connect')) {
+      return
+    }
+
     var responseChannel = 'txn_' + uuid.v4()
     req.options.sub.subscribe(responseChannel)
 
@@ -343,6 +358,10 @@ function remoteDisconnectUserDeviceBySerial(req: ApiRequest, res: Response) {
 
   withOwnedDevice(req, res, serial, 'Device is not owned by you or is not available'
   , function(device) {
+    if (rejectIosRemoteAdb(res, device, 'disconnect')) {
+      return
+    }
+
     var responseChannel = 'txn_' + uuid.v4()
     req.options.sub.subscribe(responseChannel)
 

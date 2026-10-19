@@ -28,6 +28,7 @@ import {
 import {createControl, type Control} from '@/core/control'
 import {useDevice} from '@/core/devices/store'
 import {likelyLeaveReason} from '@/core/devices/enhance'
+import {isIosDevice} from '@/core/devices/platform'
 import type {Device} from '@/core/devices/types'
 import {inviteDevice} from '@/core/group'
 import {gettext, useTranslation} from '@/core/i18n'
@@ -46,6 +47,7 @@ interface PaneDefinition {
   icon: ComponentType<{size?: number}>
   component: ComponentType<PaneProps>
   fill?: boolean
+  androidOnly?: boolean
 }
 
 export const panes: PaneDefinition[] = [
@@ -61,6 +63,7 @@ export const panes: PaneDefinition[] = [
     , icon: IconListDetails
     , component: lazy(() => import('./panes/logs/LogsPane'))
     , fill: true
+    , androidOnly: true
   }
   , {
     id: 'screenshots'
@@ -73,6 +76,7 @@ export const panes: PaneDefinition[] = [
     , title: gettext('Automation')
     , icon: IconRoute
     , component: lazy(() => import('./panes/automation/AutomationPane'))
+    , androidOnly: true
   }
   , {
     id: 'advanced'
@@ -85,6 +89,7 @@ export const panes: PaneDefinition[] = [
     , title: gettext('File Explorer')
     , icon: IconFolderOpen
     , component: lazy(() => import('./panes/explorer/ExplorerPane'))
+    , androidOnly: true
   }
   , {
     id: 'info'
@@ -93,6 +98,10 @@ export const panes: PaneDefinition[] = [
     , component: lazy(() => import('./panes/info/InfoPane'))
   }
 ]
+
+export function panesFor(device: Device): PaneDefinition[] {
+  return isIosDevice(device) ? panes.filter((pane) => !pane.androidOnly) : panes
+}
 
 function DeviceLostModal({device, onReconnect, onLeave, onDismiss}: {
   device: Device
@@ -161,7 +170,8 @@ function ControlWorkspace({device, control}: PaneProps) {
   const {t} = useTranslation()
   const [activePane, setActivePane] = useSetting<string>('controlActivePane', 'dashboard')
   const split = useSplit(Math.round(window.innerWidth * 0.34))
-  const current = panes.some((pane) => pane.id === activePane) ? activePane : 'dashboard'
+  const visiblePanes = panesFor(device)
+  const current = visiblePanes.some((pane) => pane.id === activePane) ? activePane : 'dashboard'
 
   return (
     <div className={classes.workspace}>
@@ -182,13 +192,13 @@ function ControlWorkspace({device, control}: PaneProps) {
         variant='outline'
       >
         <Tabs.List className={classes.tabList}>
-          {panes.map(({id, title, icon: Icon}) => (
+          {visiblePanes.map(({id, title, icon: Icon}) => (
             <Tabs.Tab key={id} value={id} leftSection={<Icon size={16} />}>
               {t(title)}
             </Tabs.Tab>
           ))}
         </Tabs.List>
-        {panes.map(({id, component: Pane, fill}) => {
+        {visiblePanes.map(({id, component: Pane, fill}) => {
           const content = (
             <Suspense fallback={<Center p='xl'><Loader /></Center>}>
               <Pane device={device} control={control} />

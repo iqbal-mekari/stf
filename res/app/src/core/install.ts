@@ -1,6 +1,7 @@
 import {api} from './api'
 import type {Control} from './control'
 import {createDeviceStore} from './device-store'
+import {isIosDevice} from './devices/platform'
 import {gettext, translate} from './i18n'
 import {storeFiles, storeUrl} from './storage'
 
@@ -27,7 +28,11 @@ export interface ManifestActivity {
 
 export interface Manifest {
   package?: string
-  application?: {activities?: ManifestActivity[] | Record<string, never>}
+  application?: {
+    launcherActivities?: unknown[]
+    activities?: ManifestActivity[] | Record<string, never>
+  }
+  ios?: boolean
   [key: string]: unknown
 }
 
@@ -100,9 +105,16 @@ async function fetchManifest(href: string): Promise<Manifest> {
   return response.manifest
 }
 
+export const iosManifest: Manifest = {application: {launcherActivities: [], activities: {}}, ios: true}
+
+// iOS has no Android launch logic; launch only when a bundle id is known.
+export function shouldLaunch(manifest: Manifest): boolean {
+  return !manifest.ios || Boolean(manifest.package)
+}
+
 async function installStored(control: Control, installation: Tracker, href: string, manifest: Manifest) {
   installation.patch({manifest})
-  await control.install({href, manifest, launch: true})
+  await control.install({href, manifest, launch: shouldLaunch(manifest)})
     .progressed((result) => installation.update(50 + result.progress / 2, result.lastData))
 }
 
@@ -130,7 +142,7 @@ export async function installFile(
 , onChange?: InstallationListener
 ): Promise<Installation> {
   const installation = startInstallation(control.target.serial, 'uploading', onChange)
-  const ios = control.target.platform === 'iOS'
+  const ios = isIosDevice(control.target)
   try {
     const response = await storeFiles<{resources: {file: StoredResource}}>('apk', files, {
       filter: (file) => (ios ? /\.(ipa)$/i : /\.(apk|aab)$/i).test(file.name)
@@ -138,7 +150,7 @@ export async function installFile(
     })
     installation.update(100 / 2, 'processing')
     const href = response.resources.file.href
-    const manifest = ios ? {application: {activities: {}}} : await fetchManifest(href)
+    const manifest = ios ? iosManifest : await fetchManifest(href)
     await installStored(control, installation, href, manifest)
     installation.okay('installed')
   }

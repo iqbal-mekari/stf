@@ -15,6 +15,7 @@ import {
   , IconPhoto
 } from '@tabler/icons-react'
 import {displayDensities, humanizedBool, networkTypes} from '@/core/devices/enhance'
+import {isIosDevice} from '@/core/devices/platform'
 import type {Device} from '@/core/devices/types'
 import {gettext, translate, useTranslation} from '@/core/i18n'
 import {NothingToShow} from '@/ui/NothingToShow'
@@ -141,9 +142,12 @@ function InfoTable({rows}: {rows: InfoRow[]}) {
   )
 }
 
-function useSdCardMounted(control: PaneProps['control']): boolean | undefined {
+function useSdCardMounted(control: PaneProps['control'], enabled: boolean): boolean | undefined {
   const [mounted, setMounted] = useState<boolean>()
   useEffect(() => {
+    if (!enabled) {
+      return undefined
+    }
     let active = true
     control.getSdStatus()
       .then((result) => {
@@ -155,13 +159,14 @@ function useSdCardMounted(control: PaneProps['control']): boolean | undefined {
     return () => {
       active = false
     }
-  }, [control])
+  }, [control, enabled])
   return mounted
 }
 
 export default function InfoPane({device, control}: PaneProps) {
   const {t, language} = useTranslation()
-  const sdCardMounted = useSdCardMounted(control)
+  const ios = isIosDevice(device)
+  const sdCardMounted = useSdCardMounted(control, !ios)
   const {battery, display, network, phone, cpu, memory} = device
   const photoRows: InfoRow[] = device.name && device.image ? [{
     label: ''
@@ -274,8 +279,10 @@ export default function InfoPane({device, control}: PaneProps) {
       , rows: [
         {label: gettext('OS'), value: plain(device.platform)}
         , {label: gettext('Version'), value: plain(device.version)}
-        , {label: gettext('SDK'), value: plain(device.sdk)}
-        , {label: gettext('ABI'), value: plain(device.abi)}
+        , ...(ios ? [] : [
+          {label: gettext('SDK'), value: plain(device.sdk)}
+          , {label: gettext('ABI'), value: plain(device.abi)}
+        ])
       ]
     }
     , {
@@ -297,7 +304,7 @@ export default function InfoPane({device, control}: PaneProps) {
       , rows: [
         {label: gettext('RAM'), value: memory?.ram ? `${memory.ram} MB` : '-'}
         , {label: gettext('ROM'), value: memory?.rom ? `${memory.rom} MB` : '-'}
-        , {label: gettext('SD Card Mounted'), value: humanizedBool(sdCardMounted)}
+        , ...(ios ? [] : [{label: gettext('SD Card Mounted'), value: humanizedBool(sdCardMounted)}])
       ]
     }
   ]
