@@ -5,6 +5,7 @@ import {
   , IconSquare
   , IconTriangle
 } from '@tabler/icons-react'
+import {isIosDevice} from '@/core/devices/platform'
 import {useTranslation} from '@/core/i18n'
 import {DeviceScreen} from '../screen/DeviceScreen'
 import type {PaneProps} from '../types'
@@ -25,8 +26,9 @@ export default function DeviceControlPanel({device, control, standalone}: PanePr
   const [showScreen, setShowScreen] = useState(true)
   const [dragOver, setDragOver] = useState(false)
   const actions = useDeviceActions(device, control)
+  const ios = isIosDevice(device)
 
-  useControlHotkeys(control, actions)
+  useControlHotkeys(device, control, actions)
 
   function onDragOver(event: DragEvent) {
     if (hasFiles(event)) {
@@ -76,18 +78,24 @@ export default function DeviceControlPanel({device, control, standalone}: PanePr
       {stage}
       <div className={`${classes.bottom} stf-vnc-bottom`}>
         <div className={`${classes.navPill} controls`}>
-          <DeviceControlKey control={control} deviceKey='menu' title={t('Menu')}>
-            <IconMenu2 size={18} className={classes.navMenuKey} />
-          </DeviceControlKey>
-          <DeviceControlKey control={control} deviceKey='back' title={t('Back')}>
-            <IconTriangle size={18} style={{transform: 'rotate(-90deg)'}} />
-          </DeviceControlKey>
+          {!ios && (
+            <DeviceControlKey control={control} deviceKey='menu' title={t('Menu')}>
+              <IconMenu2 size={18} className={classes.navMenuKey} />
+            </DeviceControlKey>
+          )}
+          {!ios && (
+            <DeviceControlKey control={control} deviceKey='back' title={t('Back')}>
+              <IconTriangle size={18} style={{transform: 'rotate(-90deg)'}} />
+            </DeviceControlKey>
+          )}
           <DeviceControlKey control={control} deviceKey='home' title={t('Home')}>
             <IconCircle size={20} />
           </DeviceControlKey>
-          <DeviceControlKey control={control} deviceKey='app_switch' title={t('App switch')}>
-            <IconSquare size={17} />
-          </DeviceControlKey>
+          {!ios && (
+            <DeviceControlKey control={control} deviceKey='app_switch' title={t('App switch')}>
+              <IconSquare size={17} />
+            </DeviceControlKey>
+          )}
         </div>
       </div>
     </div>

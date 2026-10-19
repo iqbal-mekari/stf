@@ -26,6 +26,7 @@ import {
   , IconUpload
 } from '@tabler/icons-react'
 import type {Control} from '@/core/control'
+import {isIosDevice} from '@/core/devices/platform'
 import {useTranslation} from '@/core/i18n'
 import {
   clearInstallation
@@ -74,7 +75,9 @@ function InstalledApp({control, installation}: {control: Control, installation: 
             </Button>
           )}
         </Group>
-        {installation.manifest && <ActivityLauncher control={control} manifest={installation.manifest} />}
+        {installation.manifest && !isIosDevice(control.target) && (
+          <ActivityLauncher control={control} manifest={installation.manifest} />
+        )}
         <div>
           <Button
             size='compact-xs'
@@ -183,7 +186,7 @@ export function InstallCard({control}: {control: Control}) {
             <div>
               <Text size='sm' fw={500} className='drop-area-text'>{t('Drop file to upload')}</Text>
               <Text size='xs' c='dimmed'>
-                {control.target.platform === 'iOS' ? '.ipa' : '.apk / .aab'}
+                {isIosDevice(control.target) ? '.ipa' : '.apk / .aab'}
               </Text>
             </div>
           </Group>

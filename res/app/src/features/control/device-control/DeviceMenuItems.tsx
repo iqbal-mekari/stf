@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-react'
 import type {Control} from '@/core/control'
 import type {Device} from '@/core/devices/types'
+import {isIosDevice} from '@/core/devices/platform'
 import {useTranslation} from '@/core/i18n'
 import {useStandalone} from '@/ui/modes'
 import {rotateBy, saveScreenshot} from './device-commands'
@@ -21,29 +22,38 @@ export function DeviceMenuItems({device, control, onStopUsing}: {
 }) {
   const {t} = useTranslation()
   const standalone = useStandalone()
+  const ios = isIosDevice(device)
 
   return (
     <>
-      <Menu.Item leftSection={<IconArrowBackUp size={16} />} onClick={() => control.back()}>
-        {t('Back')}
-      </Menu.Item>
+      {!ios && (
+        <Menu.Item leftSection={<IconArrowBackUp size={16} />} onClick={() => control.back()}>
+          {t('Back')}
+        </Menu.Item>
+      )}
       <Menu.Item leftSection={<IconHome size={16} />} onClick={() => control.home()}>
         {t('Home')}
       </Menu.Item>
-      <Menu.Item leftSection={<IconSquare size={16} />} onClick={() => control.appSwitch()}>
-        {t('Recents')}
-      </Menu.Item>
+      {!ios && (
+        <Menu.Item leftSection={<IconSquare size={16} />} onClick={() => control.appSwitch()}>
+          {t('Recents')}
+        </Menu.Item>
+      )}
       <Menu.Divider />
-      <Menu.Item leftSection={<IconRotate size={16} />} onClick={() => rotateBy(control, device, 90, standalone)}>
-        {t('Rotate Left')}
-      </Menu.Item>
-      <Menu.Item
-        leftSection={<IconRotateClockwise size={16} />}
-        onClick={() => rotateBy(control, device, -90, standalone)}
-      >
-        {t('Rotate Right')}
-      </Menu.Item>
-      <Menu.Divider />
+      {!ios && (
+        <>
+          <Menu.Item leftSection={<IconRotate size={16} />} onClick={() => rotateBy(control, device, 90, standalone)}>
+            {t('Rotate Left')}
+          </Menu.Item>
+          <Menu.Item
+            leftSection={<IconRotateClockwise size={16} />}
+            onClick={() => rotateBy(control, device, -90, standalone)}
+          >
+            {t('Rotate Right')}
+          </Menu.Item>
+          <Menu.Divider />
+        </>
+      )}
       <Menu.Item leftSection={<IconCamera size={16} />} onClick={() => saveScreenshot(control)}>
         {t('Save ScreenShot')}
       </Menu.Item>

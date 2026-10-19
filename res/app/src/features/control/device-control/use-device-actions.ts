@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router'
 import type {Control} from '@/core/control'
 import {useUserDevices} from '@/core/devices/store'
 import type {Device} from '@/core/devices/types'
+import {isIosDevice} from '@/core/devices/platform'
 import {kickDevice} from '@/core/group'
 import {translate} from '@/core/i18n'
 import {useStandalone} from '@/ui/modes'
@@ -43,6 +44,9 @@ export function useDeviceActions(device: Device, control: Control) {
   }, [rotation])
 
   function tryToRotate(orientation: Orientation) {
+    if (isIosDevice(deviceRef.current)) {
+      return
+    }
     setCurrentRotation(orientation)
     if (orientation === 'portrait') {
       control.rotate(0)
@@ -94,7 +98,11 @@ export function useDeviceActions(device: Device, control: Control) {
     groupDevices
     , rotation
     , currentRotation
-    , rotateBy: (delta: number) => rotateBy(control, deviceRef.current, delta, standalone)
+    , rotateBy: (delta: number) => {
+      if (!isIosDevice(deviceRef.current)) {
+        rotateBy(control, deviceRef.current, delta, standalone)
+      }
+    }
     , tryToRotate
     , stopUsing
     , controlDevice

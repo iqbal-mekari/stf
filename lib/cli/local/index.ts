@@ -130,11 +130,24 @@ var builder = function(yargs: Argv) {
     , type: 'boolean'
     , default: false
     })
+    .option('command-timeout', {
+      describe: 'Upper bound in milliseconds for any single iOS backend ' +
+        'command. Only used with --ios-provider.'
+    , type: 'number'
+    })
     .option('cleanup-folder', {
       describe: 'Whether to remove pre-defined folder during cleanup. ' +
         'eg. "--cleanup-folder /data/local /tmp"'
     , type: 'array'
     , default: []
+    })
+    .option('fake-device-count', {
+      describe: 'Number of fake iOS devices (fake backend). Only used with --ios-provider.'
+    , type: 'number'
+    })
+    .option('go-ios-path', {
+      describe: 'Path to the go-ios binary (goios backend). Only used with --ios-provider.'
+    , type: 'string'
     })
     .option('group-timeout', {
       alias: 't'
@@ -147,6 +160,28 @@ var builder = function(yargs: Argv) {
         'when a reboot asked for it. Off by default: a device that disappears is released.'
     , type: 'boolean'
     , default: false
+    })
+    .option('ios-backend', {
+      describe: 'How the iOS provider talks to devices. Only used with --ios-provider.'
+    , choices: ['goios', 'simulator', 'fake'] as const
+    , default: 'goios' as const
+    })
+    .option('ios-provider', {
+      describe: 'Also start an iOS provider next to the Android one.'
+    , type: 'boolean'
+    , default: false
+    })
+    .option('ios-provider-max-port', {
+      describe: 'Highest port number for iOS device workers to use. Keep ' +
+        'it clear of the Android provider range.'
+    , type: 'number'
+    , default: 7900
+    })
+    .option('ios-provider-min-port', {
+      describe: 'Lowest port number for iOS device workers to use. Keep ' +
+        'it clear of the Android provider range.'
+    , type: 'number'
+    , default: 7710
     })
     .option('lock-rotation', {
       describe: 'Whether to lock rotation when devices are being used. ' +
@@ -257,6 +292,25 @@ var builder = function(yargs: Argv) {
         return size
       }
     })
+    .option('wda-bundle-id', {
+      describe: 'WebDriverAgent runner bundle id (goios backend). Only used with --ios-provider.'
+    , type: 'string'
+    })
+    .option('wda-simulator-build-dir', {
+      describe: 'Directory with the prebuilt WebDriverAgent .xctestrun ' +
+        '(simulator backend). Only used with --ios-provider.'
+    , type: 'string'
+    })
+    .option('wda-test-runner-bundle-id', {
+      describe: 'WebDriverAgent test runner bundle id (goios backend). ' +
+        'Only used with --ios-provider.'
+    , type: 'string'
+    })
+    .option('wda-xctest-config', {
+      describe: 'WebDriverAgent xctest configuration name (goios backend). ' +
+        'Only used with --ios-provider.'
+    , type: 'string'
+    })
     .option('websocket-port', {
       describe: 'The port the websocket unit should run at.'
     , type: 'number'
@@ -277,6 +331,7 @@ type CliArg = string | number
 var handler = function(argv: CommandArgv<typeof builder>) {
   var util = require('util')
   var path = require('path')
+  var os = require('os')
 
   var Promise: typeof import('bluebird') = require('bluebird')
 
@@ -468,6 +523,43 @@ var handler = function(argv: CommandArgv<typeof builder>) {
         .concat(argv.cleanupFolder ? ['--cleanup-folder' as CliArg].concat(argv.cleanupFolder) : [])
         .concat(!argv.screenReset ? ['--no-screen-reset'] : [])
         .concat(argv.serial)))
+    }
+
+    if (argv.iosProvider) {
+      var iosArgs: CliArg[] = [
+          'ios-provider'
+        , '--name', (argv.provider as string | false) !== false ? argv.provider : os.hostname()
+        , '--min-port', argv.iosProviderMinPort
+        , '--max-port', argv.iosProviderMaxPort
+        , '--connect-sub', argv.bindDevPub
+        , '--connect-push', argv.bindDevPull
+        , '--group-timeout', argv.groupTimeout
+        , '--public-ip', argv.publicIp
+        , '--storage-url'
+        , util.format('http://localhost:%d/', argv.port)
+        , '--screen-ws-url-pattern', argv.screenWsUrlPattern
+        , '--ios-backend', argv.iosBackend
+      ]
+      var iosPassThrough: [string, string | number | undefined][] = [
+        ['--go-ios-path', argv.goIosPath]
+      , ['--wda-bundle-id', argv.wdaBundleId]
+      , ['--wda-test-runner-bundle-id', argv.wdaTestRunnerBundleId]
+      , ['--wda-xctest-config', argv.wdaXctestConfig]
+      , ['--wda-simulator-build-dir', argv.wdaSimulatorBuildDir]
+      , ['--fake-device-count', argv.fakeDeviceCount]
+      , ['--command-timeout', argv.commandTimeout]
+      ]
+      iosPassThrough.forEach(function(pair) {
+        if (pair[1] !== undefined) {
+          iosArgs.push(pair[0], pair[1])
+        }
+      })
+      // The serial filter applies to both providers, so personal simulators or
+      // devices on the same host are left alone unless listed.
+      procs.push(procutil.fork(
+        path.resolve(import.meta.dirname, '..')
+      , (iosArgs as string[]).concat((argv.serial || []).map(String))
+      ))
     }
 
     function shutdown() {

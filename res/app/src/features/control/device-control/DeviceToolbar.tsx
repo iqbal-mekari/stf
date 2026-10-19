@@ -10,6 +10,7 @@ import {
   , IconX
 } from '@tabler/icons-react'
 import type {Device} from '@/core/devices/types'
+import {isIosDevice} from '@/core/devices/platform'
 import {useTranslation} from '@/core/i18n'
 import type {DeviceActions} from './use-device-actions'
 import classes from './DeviceControlPanel.module.css'
@@ -72,59 +73,64 @@ export function DeviceToolbar({device, actions, showScreen, onToggleScreen}: {
   onToggleScreen: () => void
 }) {
   const {t} = useTranslation()
+  const ios = isIosDevice(device)
   const rotationSuffix = `(${t('Current rotation:')} ${actions.rotation}°)`
 
   return (
     <div className={`${classes.toolbar} stf-vnc-navbar`}>
       <DeviceNameMenu device={device} actions={actions} />
       <Group gap={6} wrap='nowrap' className={`${classes.rightButtons} stf-vnc-right-buttons`}>
-        <ActionIcon.Group>
-          <Tooltip label={`${t('Portrait')} ${rotationSuffix}`} position='bottom'>
-            <ActionIcon
-              size='md'
-              variant={actions.currentRotation === 'portrait' ? 'filled' : 'default'}
-              aria-label={t('Portrait')}
-              aria-pressed={actions.currentRotation === 'portrait'}
-              onClick={() => actions.tryToRotate('portrait')}
-            >
-              <IconDeviceMobile size={16} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label={`${t('Landscape')} ${rotationSuffix}`} position='bottom'>
-            <ActionIcon
-              size='md'
-              variant={actions.currentRotation === 'landscape' ? 'filled' : 'default'}
-              aria-label={t('Landscape')}
-              aria-pressed={actions.currentRotation === 'landscape'}
-              onClick={() => actions.tryToRotate('landscape')}
-            >
-              <IconDeviceMobileRotated size={16} />
-            </ActionIcon>
-          </Tooltip>
-        </ActionIcon.Group>
-        <ActionIcon.Group>
-          <Tooltip label={t('Rotate Left')} position='bottom'>
-            <ActionIcon
-              size='md'
-              variant='default'
-              aria-label={t('Rotate Left')}
-              onClick={() => actions.rotateBy(90)}
-            >
-              <IconRotate size={16} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label={t('Rotate Right')} position='bottom'>
-            <ActionIcon
-              size='md'
-              variant='default'
-              aria-label={t('Rotate Right')}
-              onClick={() => actions.rotateBy(-90)}
-            >
-              <IconRotateClockwise size={16} />
-            </ActionIcon>
-          </Tooltip>
-        </ActionIcon.Group>
-        <Divider orientation='vertical' />
+        {!ios && (
+          <>
+          <ActionIcon.Group>
+            <Tooltip label={`${t('Portrait')} ${rotationSuffix}`} position='bottom'>
+              <ActionIcon
+                size='md'
+                variant={actions.currentRotation === 'portrait' ? 'filled' : 'default'}
+                aria-label={t('Portrait')}
+                aria-pressed={actions.currentRotation === 'portrait'}
+                onClick={() => actions.tryToRotate('portrait')}
+              >
+                <IconDeviceMobile size={16} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={`${t('Landscape')} ${rotationSuffix}`} position='bottom'>
+              <ActionIcon
+                size='md'
+                variant={actions.currentRotation === 'landscape' ? 'filled' : 'default'}
+                aria-label={t('Landscape')}
+                aria-pressed={actions.currentRotation === 'landscape'}
+                onClick={() => actions.tryToRotate('landscape')}
+              >
+                <IconDeviceMobileRotated size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </ActionIcon.Group>
+          <ActionIcon.Group>
+            <Tooltip label={t('Rotate Left')} position='bottom'>
+              <ActionIcon
+                size='md'
+                variant='default'
+                aria-label={t('Rotate Left')}
+                onClick={() => actions.rotateBy(90)}
+              >
+                <IconRotate size={16} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={t('Rotate Right')} position='bottom'>
+              <ActionIcon
+                size='md'
+                variant='default'
+                aria-label={t('Rotate Right')}
+                onClick={() => actions.rotateBy(-90)}
+              >
+                <IconRotateClockwise size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </ActionIcon.Group>
+          <Divider orientation='vertical' />
+          </>
+        )}
         <Tooltip label={showScreen ? t('Hide Screen') : t('Show Screen')} position='bottom'>
           <ActionIcon
             size='md'

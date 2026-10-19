@@ -3,6 +3,7 @@ import {Group, Loader, Text} from '@mantine/core'
 import {IconBattery2, IconUser} from '@tabler/icons-react'
 import {createControl} from '@/core/control'
 import type {Device} from '@/core/devices/types'
+import {isIosDevice} from '@/core/devices/platform'
 import {controlHref, type DeviceActions} from './device-actions'
 import {StatusButton} from './cells'
 import {DeviceContextMenu} from './DeviceContextMenu'
@@ -13,7 +14,10 @@ function TileMeta({device}: {device: Device}) {
   return (
     <Group gap={4} justify='center' wrap='wrap' className={classes.tileMeta}>
       {device.version && (
-        <span className={classes.chip} title={device.sdk ? `SDK ${device.sdk}` : undefined}>
+        <span
+          className={classes.chip}
+          title={device.sdk && !isIosDevice(device) ? `SDK ${device.sdk}` : undefined}
+        >
           {device.platform ? `${device.platform} ${device.version}` : device.version}
         </span>
       )}

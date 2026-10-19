@@ -1152,6 +1152,7 @@ paths:
         default:
           description: >
             Unexpected Error:
+              * 400: Bad Request => not supported for this device platform (iOS)
               * 401: Unauthorized => bad credentials
               * 403: Forbidden => device is not controlled by the user
               * 404: Not Found => unknown user or device 
@@ -1186,6 +1187,7 @@ paths:
         default:
           description: >
             Unexpected Error:
+              * 400: Bad Request => not supported for this device platform (iOS)
               * 401: Unauthorized => bad credentials
               * 403: Forbidden => device is not controlled by the user
               * 404: Not Found => unknown user or device 
@@ -1547,6 +1549,7 @@ paths:
         default:
           description: >
             Unexpected Error:
+              * 400: Bad Request => not supported for this device platform (iOS)
               * 401: Unauthorized => bad credentials
               * 403: Forbidden => device is not controlled by the user
               * 404: Not Found => unknown device 
@@ -1576,6 +1579,7 @@ paths:
         default:
           description: >
             Unexpected Error:
+              * 400: Bad Request => not supported for this device platform (iOS)
               * 401: Unauthorized => bad credentials
               * 403: Forbidden => device is not controlled by the user
               * 404: Not Found => unknown device 
