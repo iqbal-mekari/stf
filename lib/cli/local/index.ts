@@ -328,6 +328,83 @@ var builder = function(yargs: Argv) {
 
 type CliArg = string | number
 
+type LocalArgv = CommandArgv<typeof builder>
+
+// Serials go first, right after the unit name: placed last, they would be
+// swallowed by a preceding array option such as --cleanup-folder and the
+// provider would silently manage every device on the host.
+function serialArgs(argv: LocalArgv): string[] {
+  return (argv.serial || []).map(String)
+}
+
+function providerArgs(argv: LocalArgv): CliArg[] {
+  var util = require('util')
+  return (['provider'] as CliArg[])
+    .concat(serialArgs(argv))
+    .concat([
+      '--name', argv.provider
+    , '--min-port', argv.providerMinPort
+    , '--max-port', argv.providerMaxPort
+    , '--connect-sub', argv.bindDevPub
+    , '--connect-push', argv.bindDevPull
+    , '--group-timeout', argv.groupTimeout
+    , '--public-ip', argv.publicIp
+    , '--storage-url'
+    , util.format('http://localhost:%d/', argv.port)
+    , '--adb-host', argv.adbHost
+    , '--adb-port', argv.adbPort
+    , '--vnc-initial-size', argv.vncInitialSize.join('x')
+    , '--mute-master', argv.muteMaster
+    , '--screen-ws-url-pattern', argv.screenWsUrlPattern
+    ])
+    .concat(argv.allowRemote ? ['--allow-remote'] : [])
+    .concat(argv.lockRotation ? ['--lock-rotation'] : [])
+    .concat(!argv.cleanup ? ['--no-cleanup'] : [])
+    .concat(argv.cleanupDisableBluetooth ? ['--cleanup-disable-bluetooth'] : [])
+    .concat(argv.cleanupBluetoothBonds ? ['--cleanup-bluetooth-bonds'] : [])
+    .concat(argv.cleanupFolder && argv.cleanupFolder.length ?
+      ['--cleanup-folder' as CliArg].concat(argv.cleanupFolder) :
+      [])
+    .concat(!argv.screenReset ? ['--no-screen-reset'] : [])
+}
+
+// The serial filter applies to both providers, so personal simulators or
+// devices on the same host are left alone unless listed.
+function iosProviderArgs(argv: LocalArgv): CliArg[] {
+  var util = require('util')
+  var os = require('os')
+  var args: CliArg[] = (['ios-provider'] as CliArg[])
+    .concat(serialArgs(argv))
+    .concat([
+      '--name', (argv.provider as string | false) !== false ? argv.provider : os.hostname()
+    , '--min-port', argv.iosProviderMinPort
+    , '--max-port', argv.iosProviderMaxPort
+    , '--connect-sub', argv.bindDevPub
+    , '--connect-push', argv.bindDevPull
+    , '--group-timeout', argv.groupTimeout
+    , '--public-ip', argv.publicIp
+    , '--storage-url'
+    , util.format('http://localhost:%d/', argv.port)
+    , '--screen-ws-url-pattern', argv.screenWsUrlPattern
+    , '--ios-backend', argv.iosBackend
+    ])
+  var passThrough: [string, string | number | undefined][] = [
+    ['--go-ios-path', argv.goIosPath]
+  , ['--wda-bundle-id', argv.wdaBundleId]
+  , ['--wda-test-runner-bundle-id', argv.wdaTestRunnerBundleId]
+  , ['--wda-xctest-config', argv.wdaXctestConfig]
+  , ['--wda-simulator-build-dir', argv.wdaSimulatorBuildDir]
+  , ['--fake-device-count', argv.fakeDeviceCount]
+  , ['--command-timeout', argv.commandTimeout]
+  ]
+  passThrough.forEach(function(pair) {
+    if (pair[1] !== undefined) {
+      args.push(pair[0], pair[1])
+    }
+  })
+  return args
+}
+
 var handler = function(argv: CommandArgv<typeof builder>) {
   var util = require('util')
   var path = require('path')
@@ -498,68 +575,11 @@ var handler = function(argv: CommandArgv<typeof builder>) {
     ]
 
     if ((argv.provider as string | false) !== false) {
-      procs.push(procutil.fork(path.resolve(import.meta.dirname, '..'), [
-          'provider'
-        , '--name', argv.provider
-        , '--min-port', argv.providerMinPort
-        , '--max-port', argv.providerMaxPort
-        , '--connect-sub', argv.bindDevPub
-        , '--connect-push', argv.bindDevPull
-        , '--group-timeout', argv.groupTimeout
-        , '--public-ip', argv.publicIp
-        , '--storage-url'
-        , util.format('http://localhost:%d/', argv.port)
-        , '--adb-host', argv.adbHost
-        , '--adb-port', argv.adbPort
-        , '--vnc-initial-size', argv.vncInitialSize.join('x')
-        , '--mute-master', argv.muteMaster
-        , '--screen-ws-url-pattern', argv.screenWsUrlPattern
-        ]
-        .concat(argv.allowRemote ? ['--allow-remote'] : [])
-        .concat(argv.lockRotation ? ['--lock-rotation'] : [])
-        .concat(!argv.cleanup ? ['--no-cleanup'] : [])
-        .concat(argv.cleanupDisableBluetooth ? ['--cleanup-disable-bluetooth'] : [])
-        .concat(argv.cleanupBluetoothBonds ? ['--cleanup-bluetooth-bonds'] : [])
-        .concat(argv.cleanupFolder ? ['--cleanup-folder' as CliArg].concat(argv.cleanupFolder) : [])
-        .concat(!argv.screenReset ? ['--no-screen-reset'] : [])
-        .concat(argv.serial)))
+      procs.push(procutil.fork(path.resolve(import.meta.dirname, '..'), providerArgs(argv)))
     }
 
     if (argv.iosProvider) {
-      var iosArgs: CliArg[] = [
-          'ios-provider'
-        , '--name', (argv.provider as string | false) !== false ? argv.provider : os.hostname()
-        , '--min-port', argv.iosProviderMinPort
-        , '--max-port', argv.iosProviderMaxPort
-        , '--connect-sub', argv.bindDevPub
-        , '--connect-push', argv.bindDevPull
-        , '--group-timeout', argv.groupTimeout
-        , '--public-ip', argv.publicIp
-        , '--storage-url'
-        , util.format('http://localhost:%d/', argv.port)
-        , '--screen-ws-url-pattern', argv.screenWsUrlPattern
-        , '--ios-backend', argv.iosBackend
-      ]
-      var iosPassThrough: [string, string | number | undefined][] = [
-        ['--go-ios-path', argv.goIosPath]
-      , ['--wda-bundle-id', argv.wdaBundleId]
-      , ['--wda-test-runner-bundle-id', argv.wdaTestRunnerBundleId]
-      , ['--wda-xctest-config', argv.wdaXctestConfig]
-      , ['--wda-simulator-build-dir', argv.wdaSimulatorBuildDir]
-      , ['--fake-device-count', argv.fakeDeviceCount]
-      , ['--command-timeout', argv.commandTimeout]
-      ]
-      iosPassThrough.forEach(function(pair) {
-        if (pair[1] !== undefined) {
-          iosArgs.push(pair[0], pair[1])
-        }
-      })
-      // The serial filter applies to both providers, so personal simulators or
-      // devices on the same host are left alone unless listed.
-      procs.push(procutil.fork(
-        path.resolve(import.meta.dirname, '..')
-      , (iosArgs as string[]).concat((argv.serial || []).map(String))
-      ))
+      procs.push(procutil.fork(path.resolve(import.meta.dirname, '..'), iosProviderArgs(argv)))
     }
 
     function shutdown() {
@@ -594,4 +614,4 @@ var handler = function(argv: CommandArgv<typeof builder>) {
     .done(run)
 }
 
-export {command, describe, builder, handler}
+export {command, describe, builder, handler, providerArgs, iosProviderArgs}
