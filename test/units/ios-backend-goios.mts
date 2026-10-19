@@ -233,6 +233,21 @@ describe('go-ios backend', function() {
       await eventually(() => !alive(pid))
     })
 
+    it('should create a missing pair record dir before starting the agent', async function() {
+      const port = await freePort()
+      const pairDir = path.join(dir, 'pair-records', 'nested')
+      assert.ok(!fs.existsSync(pairDir))
+      const host = await createGoIosBackend({
+        goIosPath: bin, tunnelInfoPort: port, tunnelReadyTimeout: 5000
+      , tunnelPairRecordPath: pairDir
+      }).prepareHost?.()
+      assert.ok(fs.statSync(pairDir).isDirectory())
+      assert.deepEqual(argv(), [
+        `tunnel start --userspace --pair-record-path=${pairDir} --tunnel-info-port=${port}`
+      ])
+      await host?.stop()
+    })
+
     it('should reuse an agent that is already listening', async function() {
       const port = await freePort()
       const server = http.createServer((req, res) => {

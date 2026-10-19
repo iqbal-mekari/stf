@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+
 import logger from '../../../util/logger.js'
 import {
   httpStatus
@@ -99,11 +101,21 @@ export function createGoIosBackend(opts: GoIosBackendOptions = {}): IosBackend {
       return {stop: async() => undefined}
     }
 
+    // go-ios keeps its own identity in the pair-record dir and the agent exits
+    // with "failed to get self identity" when the directory does not exist.
+    const pairRecordPath = opts.tunnelPairRecordPath ?? DEFAULT_PAIR_RECORD_PATH
+    try {
+      fs.mkdirSync(pairRecordPath, {recursive: true})
+    }
+    catch (err) {
+      log.warn('Unable to create go-ios pair record dir: %s', (err as Error).message)
+    }
+
     log.info('Starting go-ios tunnel agent')
     const tunnel = spawnLongRunning(bin, [
       'tunnel', 'start'
     , '--userspace'
-    , `--pair-record-path=${opts.tunnelPairRecordPath ?? DEFAULT_PAIR_RECORD_PATH}`
+    , `--pair-record-path=${pairRecordPath}`
     , `--tunnel-info-port=${tunnelPort}`
     ], {killTimeout: opts.killTimeout})
 
